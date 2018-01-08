@@ -4,7 +4,7 @@
 package backoff
 
 import (
-	"fmt"
+	"errors"
 	"io"
 	"log"
 	"os"
@@ -16,7 +16,12 @@ import (
 
 const (
 	minRetries = 1
-	maxRetries = 200
+	maxRetries = 100
+)
+
+var (
+	// ErrInvalidRetriesNumber is an error returned when the number of retries is invalid
+	ErrInvalidRetriesNumber = errors.New("invalid number of retries")
 )
 
 type backoffConfig struct {
@@ -63,7 +68,7 @@ func Linear(f Func, opts ...ConfigFunc) (interface{}, error) {
 	for _, opt := range opts {
 		err := opt(cfg)
 		if err != nil {
-			return nil, fmt.Errorf("option %v: %v", opt, err)
+			return nil, err
 		}
 	}
 
@@ -91,7 +96,7 @@ func MustLinear(f Func, opts ...ConfigFunc) interface{} {
 	for _, opt := range opts {
 		err := opt(cfg)
 		if err != nil {
-			cfg.log.Fatalf("option %v: %v", opt, err)
+			cfg.log.Fatal(err)
 		}
 	}
 
@@ -119,7 +124,7 @@ func Exponential(f Func, opts ...ConfigFunc) (interface{}, error) {
 	for _, opt := range opts {
 		err := opt(cfg)
 		if err != nil {
-			return nil, fmt.Errorf("option %v: %v", opt, err)
+			return nil, err
 		}
 	}
 
@@ -147,7 +152,7 @@ func MustExponential(f Func, opts ...ConfigFunc) interface{} {
 	for _, opt := range opts {
 		err := opt(cfg)
 		if err != nil {
-			cfg.log.Fatalf("option %v: %v", opt, err)
+			cfg.log.Fatal(err)
 		}
 	}
 
@@ -158,8 +163,7 @@ func MustExponential(f Func, opts ...ConfigFunc) interface{} {
 func Retries(n uint) ConfigFunc {
 	return func(b *backoffConfig) error {
 		if n > 100 || n < 0 {
-			return fmt.Errorf("Expected MaxRetries be a number between %v and %v, but found %v",
-				minRetries, maxRetries, n)
+			return ErrInvalidRetriesNumber
 		}
 		b.maxRetries = n
 		return nil

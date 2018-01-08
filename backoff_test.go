@@ -82,3 +82,14 @@ func TestFailingLinear(t *testing.T) {
 		t.Errorf("Expected error to be nil but found %v", err)
 	}
 }
+
+func TestInvalidRetries(t *testing.T) {
+	_, err := backoff.Linear(
+		failingFunc,
+		backoff.Retries(329),
+		backoff.TimeScale(time.Nanosecond),
+	)
+	if err != backoff.ErrInvalidRetriesNumber {
+		t.Errorf("Invalid Retries should return an error")
+	}
+}
