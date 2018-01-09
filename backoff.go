@@ -6,12 +6,12 @@ package backoff
 import (
 	"errors"
 	"io"
-	"log"
-	"os"
 	"reflect"
 	"runtime"
 	"strings"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 const (
@@ -62,7 +62,7 @@ func Linear(f Func, opts ...ConfigFunc) (interface{}, error) {
 		exponential:  false,
 		label:        label,
 		timeScale:    time.Millisecond,
-		log:          log.New(os.Stdout, label+": ", log.LstdFlags),
+		log:          log.New(),
 	}
 
 	for _, opt := range opts {
@@ -90,7 +90,7 @@ func MustLinear(f Func, opts ...ConfigFunc) interface{} {
 		exponential:  false,
 		label:        label,
 		timeScale:    time.Millisecond,
-		log:          log.New(os.Stdout, label+": ", log.LstdFlags),
+		log:          log.New(),
 	}
 
 	for _, opt := range opts {
@@ -115,10 +115,10 @@ func Exponential(f Func, opts ...ConfigFunc) (interface{}, error) {
 		callbackFunc: nil,
 		maxRetries:   10,
 		retryAfter:   500,
-		exponential:  false,
+		exponential:  true,
 		label:        label,
 		timeScale:    time.Millisecond,
-		log:          log.New(os.Stdout, label+": ", log.LstdFlags),
+		log:          log.New(),
 	}
 
 	for _, opt := range opts {
@@ -143,10 +143,10 @@ func MustExponential(f Func, opts ...ConfigFunc) interface{} {
 		callbackFunc: nil,
 		maxRetries:   10,
 		retryAfter:   500,
-		exponential:  false,
+		exponential:  true,
 		label:        label,
 		timeScale:    time.Millisecond,
-		log:          log.New(os.Stdout, label+": ", log.LstdFlags),
+		log:          log.New(),
 	}
 
 	for _, opt := range opts {
@@ -176,7 +176,7 @@ func Retries(n uint) ConfigFunc {
 func Label(label string) ConfigFunc {
 	return func(b *backoffConfig) error {
 		b.label = label
-		b.log = log.New(os.Stdout, label+": ", log.LstdFlags)
+		b.log = log.New()
 		return nil
 	}
 }
@@ -204,7 +204,7 @@ func TimeScale(t time.Duration) ConfigFunc {
 // Log is a configuration option that sets the destination of logging. Practically it expects an io.Writer for destination
 func Log(dest io.Writer) ConfigFunc {
 	return func(b *backoffConfig) error {
-		b.log = log.New(dest, b.label, log.LstdFlags)
+		b.log = log.New()
 		return nil
 	}
 }
@@ -231,7 +231,8 @@ func getLabel(f Func) string {
 	}
 	s := strings.Split(label, "/")
 	label = s[len(s)-1]
-	return label
+	pkg := strings.Split(label, ".")[0]
+	return pkg
 }
 
 func exec(f Func, b *backoffConfig) (result interface{}, err error) {
@@ -251,7 +252,7 @@ func exec(f Func, b *backoffConfig) (result interface{}, err error) {
 		result, err = b.backoffFunc()
 		if err != nil {
 			b.failedInvocations++
-			b.log.Printf("(Attempt #%v): %v\n", i, err)
+			b.log.Warnf("%v (Attempt #%v): %v", b.label, i, err)
 			prevErr = err
 			err = nil
 			continue
@@ -282,7 +283,7 @@ func mustExec(f Func, b *backoffConfig) (result interface{}) {
 		result, err = b.backoffFunc()
 		if err != nil {
 			b.failedInvocations++
-			b.log.Printf("(Attempt #%v): %v\n", i, err)
+			b.log.Warnf("%v (Attempt #%v): %v", b.label, i, err)
 			continue
 		}
 		break

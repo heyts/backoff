@@ -90,6 +90,6 @@ func TestInvalidRetries(t *testing.T) {
 		backoff.TimeScale(time.Nanosecond),
 	)
 	if err != backoff.ErrInvalidRetriesNumber {
-		t.Errorf("Invalid Retries should return an error")
+		t.Errorf("Invalid retries configuration option should return an error")
 	}
 }
