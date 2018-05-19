@@ -5,6 +5,7 @@ package backoff
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"reflect"
 	"runtime"
@@ -290,7 +291,7 @@ func mustExec(f Func, b *backoffConfig) (result interface{}) {
 	}
 
 	if err != nil {
-		b.log.Fatalf("giving up after %d tries", b.maxRetries)
+		panic(fmt.Sprintf("giving up after %d tries", b.maxRetries))
 	}
 
 	if b.callbackFunc != nil {
