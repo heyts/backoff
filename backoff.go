@@ -258,9 +258,9 @@ func exec(f Func, b *backoffConfig) (result interface{}, err error) {
 			err = nil
 			continue
 		}
+		prevErr = nil
 		break
 	}
-
 	if b.callbackFunc != nil && prevErr == nil {
 		b.callbackFunc(b, result)
 	}
