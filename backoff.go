@@ -6,7 +6,6 @@ package backoff
 import (
 	"errors"
 	"fmt"
-	"io"
 	"reflect"
 	"runtime"
 	"strings"
@@ -24,6 +23,16 @@ var (
 	// ErrInvalidRetriesNumber is an error returned when the number of retries is invalid
 	ErrInvalidRetriesNumber = errors.New("invalid number of retries")
 )
+
+// UnrecoverableError is a type that wraps an error
+// to signal that the error cannot be recovered
+// and the backoff function should return immediately
+type UnrecoverableError error
+
+// NewUnrecoverableError creates a new instance of UnrecoverableError
+func NewUnrecoverableError(e string) error {
+	return UnrecoverableError(errors.New(e))
+}
 
 type backoffConfig struct {
 	backoffFunc  Func
@@ -202,10 +211,10 @@ func TimeScale(t time.Duration) ConfigFunc {
 	}
 }
 
-// Log is a configuration option that sets the destination of logging. Practically it expects an io.Writer for destination
-func Log(dest io.Writer) ConfigFunc {
+// Logger is a configuration option that sets the destination of logging. Practically it expects an io.Writer for destination
+func Logger(dest *log.Logger) ConfigFunc {
 	return func(b *backoffConfig) error {
-		b.log = log.New()
+		b.log = dest
 		return nil
 	}
 }
@@ -252,11 +261,19 @@ func exec(f Func, b *backoffConfig) (result interface{}, err error) {
 		time.Sleep(time.Duration(d) * b.timeScale)
 		result, err = b.backoffFunc()
 		if err != nil {
-			b.failedInvocations++
 			b.log.Warnf("%v (Attempt #%v): %v", b.label, i, err)
-			prevErr = err
-			err = nil
-			continue
+
+			switch err.(type) {
+			case UnrecoverableError:
+				break
+
+			default:
+				b.failedInvocations++
+				prevErr = err
+				err = nil
+				continue
+			}
+
 		}
 		prevErr = nil
 		break
@@ -283,9 +300,16 @@ func mustExec(f Func, b *backoffConfig) (result interface{}) {
 		time.Sleep(time.Duration(d) * b.timeScale)
 		result, err = b.backoffFunc()
 		if err != nil {
-			b.failedInvocations++
 			b.log.Warnf("%v (Attempt #%v): %v", b.label, i, err)
-			continue
+			switch err.(type) {
+			case UnrecoverableError:
+				break
+
+			default:
+				b.failedInvocations++
+				continue
+			}
+
 		}
 		break
 	}
