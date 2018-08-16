@@ -30,8 +30,8 @@ var (
 type UnrecoverableError struct{ error }
 
 // NewUnrecoverableError creates a new instance of UnrecoverableError
-func NewUnrecoverableError(format string, a ...interface{}) *UnrecoverableError {
-	return &UnrecoverableError{fmt.Errorf(format, a)}
+func NewUnrecoverableError(err error) *UnrecoverableError {
+	return &UnrecoverableError{err}
 }
 
 type backoffConfig struct {
