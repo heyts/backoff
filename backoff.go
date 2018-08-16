@@ -30,6 +30,7 @@ var (
 type UnrecoverableError struct{ error }
 
 // NewUnrecoverableError creates a new instance of UnrecoverableError
+// which can wrap any error
 func NewUnrecoverableError(err error) *UnrecoverableError {
 	return &UnrecoverableError{err}
 }
