@@ -262,19 +262,17 @@ func exec(f Func, b *backoffConfig) (result interface{}, err error) {
 		time.Sleep(time.Duration(d) * b.timeScale)
 		result, err = b.backoffFunc()
 		if err != nil {
-			b.log.Warnf("%v (Attempt #%v): %v", b.label, i, err)
-
 			switch err.(type) {
-			case UnrecoverableError:
-				break
+			case *UnrecoverableError, UnrecoverableError:
+				return int64(0), err
 
 			default:
+				b.log.Warnf("%v (Attempt #%v): %v", b.label, i, err)
 				b.failedInvocations++
 				prevErr = err
 				err = nil
 				continue
 			}
-
 		}
 		prevErr = nil
 		break
@@ -301,16 +299,15 @@ func mustExec(f Func, b *backoffConfig) (result interface{}) {
 		time.Sleep(time.Duration(d) * b.timeScale)
 		result, err = b.backoffFunc()
 		if err != nil {
-			b.log.Warnf("%v (Attempt #%v): %v", b.label, i, err)
 			switch err.(type) {
-			case UnrecoverableError:
-				break
+			case *UnrecoverableError, UnrecoverableError:
+				panic(fmt.Sprintf("giving up after %d tries", b.maxRetries))
 
 			default:
+				b.log.Warnf("%v (Attempt #%v): %v", b.label, i, err)
 				b.failedInvocations++
 				continue
 			}
-
 		}
 		break
 	}
