@@ -27,11 +27,11 @@ var (
 // UnrecoverableError is a type that wraps an error
 // to signal that the error cannot be recovered
 // and the backoff function should return immediately
-type UnrecoverableError error
+type UnrecoverableError struct{ error }
 
 // NewUnrecoverableError creates a new instance of UnrecoverableError
-func NewUnrecoverableError(e string) error {
-	return UnrecoverableError(errors.New(e))
+func NewUnrecoverableError(format string, a ...interface{}) *UnrecoverableError {
+	return &UnrecoverableError{fmt.Errorf(format, a)}
 }
 
 type backoffConfig struct {
