@@ -266,7 +266,7 @@ func exec(f Func, b *backoffConfig) (result interface{}, err error) {
 
 			switch err.(type) {
 			case UnrecoverableError:
-				break
+				return int64(0), err
 
 			default:
 				b.failedInvocations++
@@ -274,7 +274,6 @@ func exec(f Func, b *backoffConfig) (result interface{}, err error) {
 				err = nil
 				continue
 			}
-
 		}
 		prevErr = nil
 		break
@@ -304,13 +303,12 @@ func mustExec(f Func, b *backoffConfig) (result interface{}) {
 			b.log.Warnf("%v (Attempt #%v): %v", b.label, i, err)
 			switch err.(type) {
 			case UnrecoverableError:
-				break
+				panic(fmt.Sprintf("giving up after %d tries", b.maxRetries))
 
 			default:
 				b.failedInvocations++
 				continue
 			}
-
 		}
 		break
 	}
