@@ -6,6 +6,8 @@ package backoff
 import (
 	"errors"
 	"fmt"
+	"math"
+	"math/rand"
 	"reflect"
 	"runtime"
 	"strings"
@@ -40,6 +42,7 @@ type backoffConfig struct {
 	callbackFunc CallbackFunc
 	maxRetries   uint
 	retryAfter   uint
+	jitterFunc   JitterFunc
 	exponential  bool
 	label        string
 	log          *log.Logger
@@ -58,6 +61,10 @@ type CallbackFunc func(b *backoffConfig, r interface{})
 // ConfigFunc is the function being used to modify the default configuration of the main backoff functions
 type ConfigFunc func(b *backoffConfig) error
 
+// JitterFunc is a function that takes an uint and returns an int of the same
+// value with added jitter
+type JitterFunc func(cap uint) int
+
 // Linear execute the function f repeatedly, until its result is non-nil and no error is returned.
 // It keeps the time between each iteration constant.
 //
@@ -70,6 +77,7 @@ func Linear(f Func, opts ...ConfigFunc) (interface{}, error) {
 		callbackFunc: nil,
 		maxRetries:   10,
 		retryAfter:   500,
+		jitterFunc:   FullJitter,
 		exponential:  false,
 		label:        label,
 		timeScale:    time.Millisecond,
@@ -229,6 +237,14 @@ func Callback(f CallbackFunc) ConfigFunc {
 	}
 }
 
+// Jitter is a configuration option that sets the callback function for the backoff function.
+func Jitter(f JitterFunc) ConfigFunc {
+	return func(b *backoffConfig) error {
+		b.jitterFunc = f
+		return nil
+	}
+}
+
 // Credit: https://play.golang.org/p/Dyj99EjRVm
 func getLabel(f Func) string {
 	var label string
@@ -254,9 +270,9 @@ func exec(f Func, b *backoffConfig) (result interface{}, err error) {
 		b.invocations = i
 
 		if b.exponential {
-			d = b.retryAfter * i
+			d = uint(b.jitterFunc(b.retryAfter) * int(i))
 		} else {
-			d = b.retryAfter
+			d = uint(b.jitterFunc(b.retryAfter))
 		}
 
 		time.Sleep(time.Duration(d) * b.timeScale)
@@ -291,9 +307,9 @@ func mustExec(f Func, b *backoffConfig) (result interface{}) {
 		b.invocations = i
 
 		if b.exponential {
-			d = b.retryAfter * i
+			d = uint(b.jitterFunc(b.retryAfter) * int(i))
 		} else {
-			d = b.retryAfter
+			d = uint(b.jitterFunc(b.retryAfter))
 		}
 
 		time.Sleep(time.Duration(d) * b.timeScale)
@@ -320,4 +336,20 @@ func mustExec(f Func, b *backoffConfig) (result interface{}) {
 		b.callbackFunc(b, result)
 	}
 	return result
+}
+
+// NoJitter returns the number passed to it, representing a noop implementation of jitter
+func NoJitter(cap uint) int {
+	return int(cap)
+}
+
+// FullJitter returns a number between 0 and the number passed
+func FullJitter(cap uint) int {
+	return rand.Intn(int(cap))
+}
+
+// EqualJitter return cap/2 add a random jitter in the range 0 to cap/2
+func EqualJitter(cap uint) int {
+	half := int(math.Floor(float64(cap / 2)))
+	return half + rand.Intn(half)
 }
