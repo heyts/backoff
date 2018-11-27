@@ -316,7 +316,7 @@ func mustExec(f Func, b *backoffConfig) (result interface{}) {
 		result, err = b.backoffFunc()
 		if err != nil {
 			switch err.(type) {
-			case UnrecoverableError:
+			case *UnrecoverableError, UnrecoverableError:
 				panic(fmt.Sprintf("giving up after %d tries", b.maxRetries))
 
 			default:
