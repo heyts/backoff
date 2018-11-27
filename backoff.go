@@ -77,7 +77,7 @@ func Linear(f Func, opts ...ConfigFunc) (interface{}, error) {
 		callbackFunc: nil,
 		maxRetries:   10,
 		retryAfter:   500,
-		jitterFunc:   FullJitter,
+		jitterFunc:   NoJitter,
 		exponential:  false,
 		label:        label,
 		timeScale:    time.Millisecond,
