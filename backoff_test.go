@@ -6,7 +6,15 @@ import (
 	"io/ioutil"
 	"testing"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
+
+func DiscardLogger() *log.Logger {
+	logger := log.New()
+	logger.Out = ioutil.Discard
+	return logger
+}
 
 func Example() {
 	testFunc := func() (result interface{}, err error) {
@@ -60,7 +68,7 @@ func TestSuccessMustLinear(t *testing.T) {
 		successFunc,
 		Retries(5),
 		TimeScale(time.Nanosecond),
-		Log(ioutil.Discard),
+		Logger(DiscardLogger()),
 	)
 
 	defer func() {
@@ -85,7 +93,7 @@ func TestFailingMustLinear(t *testing.T) {
 		failingFunc,
 		Retries(3),
 		TimeScale(time.Nanosecond),
-		Log(ioutil.Discard),
+		Logger(DiscardLogger()),
 	)
 
 	if result != nil {
@@ -97,7 +105,7 @@ func TestFailingConfigFunc(t *testing.T) {
 	result, err := Linear(
 		successFunc,
 		FailingConfig("Failing"),
-		Log(ioutil.Discard),
+		Logger(DiscardLogger()),
 	)
 
 	if result != nil {
@@ -114,7 +122,7 @@ func TestSuccessLinear(t *testing.T) {
 		successFunc,
 		Retries(3),
 		TimeScale(time.Nanosecond),
-		Log(ioutil.Discard),
+		Logger(DiscardLogger()),
 	)
 
 	if result != "Success" {
@@ -131,7 +139,7 @@ func TestFailingLinear(t *testing.T) {
 		failingFunc,
 		Retries(3),
 		TimeScale(time.Nanosecond),
-		Log(ioutil.Discard),
+		Logger(DiscardLogger()),
 	)
 
 	if result != nil {
@@ -148,7 +156,7 @@ func TestSuccessExponential(t *testing.T) {
 		successFunc,
 		Retries(3),
 		TimeScale(time.Nanosecond),
-		Log(ioutil.Discard),
+		Logger(DiscardLogger()),
 	)
 
 	if result != "Success" {
@@ -165,7 +173,7 @@ func TestFailingExponential(t *testing.T) {
 		failingFunc,
 		Retries(3),
 		TimeScale(time.Nanosecond),
-		Log(ioutil.Discard),
+		Logger(DiscardLogger()),
 	)
 
 	if result != nil {
@@ -182,7 +190,7 @@ func TestSuccessMustExponential(t *testing.T) {
 		successFunc,
 		Retries(3),
 		TimeScale(time.Nanosecond),
-		Log(ioutil.Discard),
+		Logger(DiscardLogger()),
 	)
 
 	defer func() {
@@ -207,7 +215,7 @@ func TestFailingMustExponential(t *testing.T) {
 		failingFunc,
 		Retries(3),
 		TimeScale(time.Nanosecond),
-		Log(ioutil.Discard),
+		Logger(DiscardLogger()),
 	)
 
 	if result != nil {
@@ -245,7 +253,7 @@ func TestCallback(t *testing.T) {
 		successFunc,
 		Retries(3),
 		TimeScale(time.Nanosecond),
-		Log(ioutil.Discard),
+		Logger(DiscardLogger()),
 		Callback(cb),
 		CallbackInterceptor(),
 	)
