@@ -209,7 +209,7 @@ func Label(label string) ConfigFunc {
 // The configuration option `TimeScale` can be used to change the duration unit.
 func RetryAfter(n uint) ConfigFunc {
 	return func(b *backoffConfig) error {
-		b.maxRetries = n
+		b.retryAfter = n
 		return nil
 	}
 }
